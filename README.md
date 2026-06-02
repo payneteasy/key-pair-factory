@@ -4,6 +4,35 @@ Native cross-platform desktop app that generates an RSA-4096 key pair (PKCS#8,
 optional PKCS#1) for the Payneteasy API — a local, no-terminal replacement for
 the OpenSSL CLI.
 
+## What it's for
+
+The Payneteasy API supports an **OAuth RSA-SHA256** request-authentication method
+that requires merchants to provide an RSA public key. The official
+[documentation][doc] walks you through generating the key pair by hand with
+`openssl`:
+
+```bash
+# generate the PKCS#8 private key (RSA-4096)
+openssl genpkey -algorithm RSA -out private_key_pkcs_8.pem -pkeyopt rsa_keygen_bits:4096
+# derive the public key to send to support
+openssl rsa -pubout -in private_key_pkcs_8.pem -out public_key.pem
+# convert to a PKCS#1 container for the doc's request builders
+openssl rsa -traditional -in private_key_pkcs_8.pem -out private_key_pkcs_1.pem
+```
+
+This app does exactly that — same algorithm, same key size, same PEM formats —
+without a terminal or an OpenSSL install. Everything runs locally; the private
+key never leaves your machine. Hand the generated `public_key.pem` to your
+Payneteasy account manager and keep the private key for signing requests.
+
+[doc]: https://doc.payneteasy.com/integration/general_api_usage/request_authentication_methods/oauth.html#oauth-rsa-sha256
+
+## Screenshots
+
+| Welcome | Configure | Done |
+|---|---|---|
+| ![Welcome screen](docs/screenshots/01-welcome.png) | ![Configure screen](docs/screenshots/02-configure.png) | ![Done screen](docs/screenshots/03-done.png) |
+
 ## Stack
 
 | Layer | Choice |
