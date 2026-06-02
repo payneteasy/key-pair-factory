@@ -1,0 +1,46 @@
+# Flatpak manifest for the Payneteasy API Key Pair Factory.
+#
+# Packages the release binary produced by `npm run tauri build` (the GitLab CI
+# `build:flatpak` job consumes it from the build:linux artifacts). The GNOME
+# runtime supplies GTK3 + WebKitGTK 4.1 that Tauri needs.
+#
+# Build locally:
+#   flatpak install -y flathub org.gnome.Platform//46 org.gnome.Sdk//46
+#   npm run tauri build          # produces src-tauri/target/release/pne-akpf
+#   flatpak-builder --user --force-clean --repo=repo build flatpak/com.payneteasy.keygen.yml
+#   flatpak build-bundle repo pne-akpf.flatpak com.payneteasy.keygen
+app-id: com.payneteasy.keygen
+runtime: org.gnome.Platform
+runtime-version: "46"
+sdk: org.gnome.Sdk
+command: pne-akpf
+
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Needed for the external "Read documentation" link.
+  - --share=network
+  # Save keys to / open the user's chosen folder.
+  - --filesystem=home
+
+modules:
+  - name: pne-akpf
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 pne-akpf /app/bin/pne-akpf
+      - install -Dm644 com.payneteasy.keygen.desktop /app/share/applications/com.payneteasy.keygen.desktop
+      - install -Dm644 com.payneteasy.keygen.metainfo.xml /app/share/metainfo/com.payneteasy.keygen.metainfo.xml
+      - install -Dm644 icon-128.png /app/share/icons/hicolor/128x128/apps/com.payneteasy.keygen.png
+    sources:
+      - type: file
+        path: ../src-tauri/target/release/pne-akpf
+        dest-filename: pne-akpf
+      - type: file
+        path: com.payneteasy.keygen.desktop
+      - type: file
+        path: com.payneteasy.keygen.metainfo.xml
+      - type: file
+        path: ../src-tauri/icons/128x128.png
+        dest-filename: icon-128.png

@@ -1,0 +1,6 @@
+# Pin the Rust toolchain so local builds and GitLab CI use the same version.
+# rustup auto-installs and selects this when running cargo in this directory.
+[toolchain]
+channel = "1.94.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

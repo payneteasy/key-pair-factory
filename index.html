@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-mode="beginner">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payneteasy API Key Pair Factory</title>
+    <script>
+      // Apply the theme BEFORE first paint to avoid a white→dark flash (FOUC).
+      // Reads the persisted choice (mirrored to localStorage by the app) and
+      // falls back to the OS colour scheme. Also paints the root background
+      // immediately, before the stylesheet has loaded.
+      (function () {
+        try {
+          var t = localStorage.getItem("theme");
+          if (t !== "light" && t !== "dark") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          var de = document.documentElement;
+          de.setAttribute("data-theme", t);
+          de.style.colorScheme = t;
+          de.style.background = t === "dark" ? "oklch(0.24 0.012 255)" : "oklch(0.99 0.003 80)";
+        } catch (e) {
+          /* ignore — CSS defaults to light */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

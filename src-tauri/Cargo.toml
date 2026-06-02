@@ -1,0 +1,74 @@
+[package]
+name = "pne-akpf"
+version = "1.0.2"
+description = "Payneteasy API Key Pair Factory"
+authors = ["Payneteasy"]
+edition = "2021"
+rust-version = "1.78"
+
+[lib]
+name = "payneteasy_keygen_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-store = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ASN.1 / PEM serialization ONLY — these crates encode the key structures
+# (PKCS#8 / PKCS#1 / SPKI, and the PBES2 wrapper). They do not implement any
+# cryptographic algorithm, so they're shared by every platform. The `pkcs5`
+# feature on pkcs8 pulls in `EncryptedPrivateKeyInfo` for *encoding* the
+# encrypted container without pulling any cipher (that lives behind the
+# separate `encryption` feature, enabled only off-Apple below).
+der = { version = "0.7", features = ["pem", "std"] }
+pkcs1 = { version = "0.7", features = ["pem", "std", "pkcs8"] }
+pkcs8 = { version = "0.10", features = ["pem", "std", "pkcs5"] }
+spki = { version = "0.7", features = ["pem", "std"] }
+pkcs5 = { version = "0.7", default-features = false, features = ["alloc"] }
+
+zeroize = { version = "1", features = ["alloc"] }
+thiserror = "1"
+dirs = "5"
+tempfile = "3"
+
+# Off-Apple platforms (Windows / Linux): pure-Rust RSA + PBES2 (AES-256-CBC /
+# PBKDF2) via RustCrypto. The `encryption` feature on pkcs8 enables
+# `to_pkcs8_encrypted_pem`.
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+rsa = { version = "0.9", features = ["pem"] }
+pkcs8 = { version = "0.10", features = ["encryption"] }
+rand = "0.8"
+
+# macOS / App Store: ALL cryptography is performed by Apple's operating system
+# — RSA key generation via Security.framework, PBKDF2 + AES-256-CBC via
+# CommonCrypto, randomness via SecRandomCopyBytes. No cryptographic algorithm
+# is implemented in or statically bundled with the app, which is what lets the
+# build claim the "uses only encryption within Apple's OS" export exemption.
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
+core-foundation = "0.10"
+
+# Optimize dependencies even in dev so RSA-4096 generation is fast under
+# `tauri dev` (num-bigint-dig is dramatically slower unoptimized). Our own
+# crate stays at a low opt-level for quick recompiles.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

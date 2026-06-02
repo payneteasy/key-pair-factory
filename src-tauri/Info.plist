@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    Export-compliance declaration for the App Store.
+
+    On macOS the app performs ALL cryptography via Apple's operating system and
+    implements/bundles no cryptographic algorithm of its own: RSA key generation
+    uses Security.framework (SecKeyCreateRandomKey), and the private-key password
+    encryption (PBKDF2 + AES-256-CBC) uses CommonCrypto. See
+    src-tauri/src/crypto_apple.rs — the der/pkcs8/pkcs1/spki/pkcs5 crates there
+    only serialize ASN.1/PEM, they do not encrypt.
+
+    Because the encryption is "limited to encryption within Apple's operating
+    system", the app qualifies for that exemption, so this is set to false — no
+    App Encryption Documentation / self-classification upload is required.
+
+    NOTE: the off-Apple (Windows/Linux) builds DO bundle RustCrypto algorithms;
+    this declaration only governs the macOS App Store build. Final classification
+    is the submitter's responsibility.
+    Ref: https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations
+  -->
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+</dict>
+</plist>
