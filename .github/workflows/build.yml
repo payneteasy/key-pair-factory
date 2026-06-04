@@ -8,8 +8,9 @@
 #   • build (macos)   → macOS (arm64)  → .dmg + versioned .app .zip
 #   • build (windows) → Windows        → .msi / NSIS .exe + versioned portable .exe
 #
-# Builds run on pushes to main, PRs, version tags (v*) and manual dispatch.
-# On a version tag (v*) the installers are attached to a *draft* GitHub Release
+# Builds run on pushes to main, PRs, version tags (v1.0.3 or bare 1.0.3) and
+# manual dispatch.
+# On a version tag the installers are attached to a *draft* GitHub Release
 # (review the auto-generated notes, then hit Publish).
 # Flatpak is not built here — Tauri can't produce it natively; it needs a
 # separate flatpak-builder job and is left as a follow-up.
@@ -22,7 +23,7 @@ name: build
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["v*", "[0-9]*"]   # v1.0.3 and bare 1.0.3 both trigger a release
   pull_request:
   workflow_dispatch:
 
@@ -197,7 +198,7 @@ jobs:
 
   # ───────────────────────── release (attach bundles to a tag) ────────────
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     permissions:
