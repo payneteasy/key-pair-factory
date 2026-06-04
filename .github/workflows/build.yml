@@ -4,10 +4,9 @@
 # Tauri produces native installers per-OS (no cross-compilation), so each
 # platform builds on its own runner:
 #   • test            → Ubuntu (lint + typecheck + crypto unit tests)
-#   • build (linux)       → Ubuntu        → .deb / .rpm / .AppImage
-#   • build (macos-arm)   → macOS (arm64)  → .dmg + versioned .app .zip
-#   • build (macos-intel) → macOS (x86_64) → .dmg + versioned .app .zip
-#   • build (windows)     → Windows        → .msi / NSIS .exe + versioned portable .exe
+#   • build (linux)   → Ubuntu        → .deb / .rpm / .AppImage
+#   • build (macos)   → macOS (arm64)  → .dmg + versioned .app .zip
+#   • build (windows) → Windows        → .msi / NSIS .exe + versioned portable .exe
 #
 # Builds run on pushes to main, PRs, version tags (v*) and manual dispatch.
 # On a version tag (v*) the installers are attached to a *draft* GitHub Release
@@ -94,23 +93,17 @@ jobs:
       matrix:
         include:
           - name: linux
-            family: linux
             os: ubuntu-latest
-          - name: macos-arm        # Apple Silicon (aarch64)
-            family: macos
+          - name: macos        # Apple Silicon (aarch64)
             os: macos-latest
-          - name: macos-intel      # Intel (x86_64)
-            family: macos
-            os: macos-13
           - name: windows
-            family: windows
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Tauri 2 Linux system dependencies
-        if: matrix.family == 'linux'
+        if: matrix.name == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -147,7 +140,7 @@ jobs:
       # (no installer needed). Version is read from tauri.conf.json to match the
       # version Tauri bakes into the .msi / NSIS .exe filenames.
       - name: Stage portable Windows executable
-        if: matrix.family == 'windows'
+        if: matrix.name == 'windows'
         shell: pwsh
         run: |
           $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
@@ -158,7 +151,7 @@ jobs:
       # `{name}_{version}_{arch}` filename convention). `ditto` preserves the
       # bundle structure / signatures.
       - name: Zip macOS .app
-        if: matrix.family == 'macos'
+        if: matrix.name == 'macos'
         run: |
           app_dir="src-tauri/target/release/bundle/macos"
           app="$(ls -d "$app_dir"/*.app | head -n1)"
@@ -168,7 +161,7 @@ jobs:
           ditto -c -k --keepParent "$app" "$out"
 
       - name: Upload Linux artifacts
-        if: matrix.family == 'linux'
+        if: matrix.name == 'linux'
         uses: actions/upload-artifact@v4
         with:
           name: keygen-${{ matrix.name }}-${{ github.sha }}
@@ -180,7 +173,7 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage
 
       - name: Upload macOS artifacts
-        if: matrix.family == 'macos'
+        if: matrix.name == 'macos'
         uses: actions/upload-artifact@v4
         with:
           name: keygen-${{ matrix.name }}-${{ github.sha }}
@@ -191,7 +184,7 @@ jobs:
             src-tauri/target/release/bundle/macos/*.zip
 
       - name: Upload Windows artifacts
-        if: matrix.family == 'windows'
+        if: matrix.name == 'windows'
         uses: actions/upload-artifact@v4
         with:
           name: keygen-${{ matrix.name }}-${{ github.sha }}
