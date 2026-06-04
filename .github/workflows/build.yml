@@ -4,12 +4,16 @@
 # Tauri produces native installers per-OS (no cross-compilation), so each
 # platform builds on its own runner:
 #   • test            → Ubuntu (lint + typecheck + crypto unit tests)
-#   • build (linux)   → Ubuntu  → .deb / .rpm / .AppImage + raw binary
-#   • build (macos)   → macOS   → .dmg / .app
-#   • build (windows) → Windows → .msi / NSIS .exe + portable .exe
+#   • build (linux)       → Ubuntu        → .deb / .rpm / .AppImage
+#   • build (macos-arm)   → macOS (arm64)  → .dmg + versioned .app .zip
+#   • build (macos-intel) → macOS (x86_64) → .dmg + versioned .app .zip
+#   • build (windows)     → Windows        → .msi / NSIS .exe + versioned portable .exe
 #
 # Builds run on pushes to main, PRs, version tags (v*) and manual dispatch.
-# On a version tag, the installers are attached to a GitHub Release.
+# On a version tag (v*) the installers are attached to a *draft* GitHub Release
+# (review the auto-generated notes, then hit Publish).
+# Flatpak is not built here — Tauri can't produce it natively; it needs a
+# separate flatpak-builder job and is left as a follow-up.
 #
 # Rust is pinned to the same version as local dev / src-tauri/rust-toolchain.toml.
 # ───────────────────────────────────────────────────────────────────────────
@@ -90,17 +94,23 @@ jobs:
       matrix:
         include:
           - name: linux
+            family: linux
             os: ubuntu-latest
-          - name: macos
+          - name: macos-arm        # Apple Silicon (aarch64)
+            family: macos
             os: macos-latest
+          - name: macos-intel      # Intel (x86_64)
+            family: macos
+            os: macos-13
           - name: windows
+            family: windows
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Tauri 2 Linux system dependencies
-        if: matrix.name == 'linux'
+        if: matrix.family == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -132,18 +142,36 @@ jobs:
         run: npm run tauri build
 
       # Portable build: `tauri build` already leaves the raw, self-contained
-      # executable next to the bundles. Copy it out under a descriptive name so
-      # it lands in the artifacts as a portable .exe (no installer needed).
+      # executable next to the bundles. Copy it out under a descriptive,
+      # version-stamped name so it lands in the artifacts as a portable .exe
+      # (no installer needed). Version is read from tauri.conf.json to match the
+      # version Tauri bakes into the .msi / NSIS .exe filenames.
       - name: Stage portable Windows executable
-        if: matrix.name == 'windows'
+        if: matrix.family == 'windows'
         shell: pwsh
-        run: copy "src-tauri\target\release\pne-akpf.exe" "src-tauri\target\release\Payneteasy-KeyGen-portable.exe"
+        run: |
+          $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          copy "src-tauri\target\release\pne-akpf.exe" "src-tauri\target\release\Payneteasy-KeyGen_${ver}_x64-portable.exe"
+
+      # macOS .app is a bundle *directory* — it can't be attached to a Release as
+      # a single asset, so pack it into a versioned .zip (matching Tauri's
+      # `{name}_{version}_{arch}` filename convention). `ditto` preserves the
+      # bundle structure / signatures.
+      - name: Zip macOS .app
+        if: matrix.family == 'macos'
+        run: |
+          app_dir="src-tauri/target/release/bundle/macos"
+          app="$(ls -d "$app_dir"/*.app | head -n1)"
+          ver="$(jq -r .version src-tauri/tauri.conf.json)"
+          arch="$(uname -m)"   # arm64 on Apple-Silicon runners
+          out="$app_dir/Payneteasy-KeyGen_${ver}_${arch}.zip"
+          ditto -c -k --keepParent "$app" "$out"
 
       - name: Upload Linux artifacts
-        if: matrix.name == 'linux'
+        if: matrix.family == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: keygen-linux-${{ github.sha }}
+          name: keygen-${{ matrix.name }}-${{ github.sha }}
           retention-days: 14
           if-no-files-found: error
           path: |
@@ -152,27 +180,27 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage
 
       - name: Upload macOS artifacts
-        if: matrix.name == 'macos'
+        if: matrix.family == 'macos'
         uses: actions/upload-artifact@v4
         with:
-          name: keygen-macos-${{ github.sha }}
+          name: keygen-${{ matrix.name }}-${{ github.sha }}
           retention-days: 14
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
+            src-tauri/target/release/bundle/macos/*.zip
 
       - name: Upload Windows artifacts
-        if: matrix.name == 'windows'
+        if: matrix.family == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: keygen-windows-${{ github.sha }}
+          name: keygen-${{ matrix.name }}-${{ github.sha }}
           retention-days: 14
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/Payneteasy-KeyGen-portable.exe
+            src-tauri/target/release/Payneteasy-KeyGen_*_x64-portable.exe
 
   # ───────────────────────── release (attach bundles to a tag) ────────────
   release:
@@ -190,5 +218,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
           fail_on_unmatched_files: false
           files: artifacts/**/*
