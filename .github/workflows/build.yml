@@ -208,6 +208,58 @@ jobs:
         with:
           path: artifacts
 
+      # Tauri names each bundle with its own per-format convention, so normalise
+      # every asset to a single scheme before publishing:
+      #   {Product}-{version}-{os}-{arch}.{ext}
+      # The extension already identifies the format, so no type segment — except
+      # the two Windows .exe (NSIS installer vs portable) which share an
+      # extension and get a -setup / -portable suffix to disambiguate.
+      # e.g. Payneteasy.API.Key.Pair.Factory-1.0.3-windows-x86_64-portable.exe
+      # OS is taken from the artifact folder (keygen-<os>-<sha>); arch/ext are
+      # derived from the original filename.
+      - name: Normalise asset filenames
+        run: |
+          set -eu
+          ver="${GITHUB_REF_NAME#v}"            # strip a leading v: v1.0.3 -> 1.0.3
+          product="Payneteasy.API.Key.Pair.Factory"
+          mkdir -p dist
+          while IFS= read -r -d '' f; do
+            base="$(basename "$f")"
+
+            case "$f" in
+              */keygen-linux-*)   os=linux ;;
+              */keygen-macos-*)   os=macos ;;
+              */keygen-windows-*) os=windows ;;
+              *)                  os=unknown ;;
+            esac
+
+            suffix=""
+            case "$base" in
+              *.AppImage)     ext=AppImage ;;
+              *.deb)          ext=deb ;;
+              *.rpm)          ext=rpm ;;
+              *.dmg)          ext=dmg ;;
+              *.msi)          ext=msi ;;
+              *-setup.exe)    ext=exe; suffix="-setup" ;;
+              *portable*.exe) ext=exe; suffix="-portable" ;;
+              *.exe)          ext=exe ;;
+              *.zip)          ext=zip ;;
+              *)              continue ;;    # skip anything unexpected
+            esac
+
+            case "$base" in
+              *aarch64*|*arm64*)      arch=aarch64 ;;
+              *x86_64*|*amd64*|*x64*) arch=x86_64 ;;
+              *)                      arch=x86_64 ;;
+            esac
+
+            out="dist/${product}-${ver}-${os}-${arch}${suffix}.${ext}"
+            cp "$f" "$out"
+            echo "  $base  ->  $(basename "$out")"
+          done < <(find artifacts -type f -print0)
+          echo "--- release assets ---"
+          ls -1 dist
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -216,4 +268,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           fail_on_unmatched_files: false
-          files: artifacts/**/*
+          files: dist/*
