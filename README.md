@@ -4,6 +4,27 @@ Native cross-platform desktop app that generates an RSA-4096 key pair (PKCS#8,
 optional PKCS#1) for the Payneteasy API — a local, no-terminal replacement for
 the OpenSSL CLI.
 
+📲 **[Download on the Mac App Store](https://apps.apple.com/us/app/payneteasy-api-keypair-factory/id6775522326?mt=12)**
+
+## Download
+
+Pre-built installers are attached to every [GitHub release][releases]. Latest
+(**1.0.1**):
+
+| Platform | File |
+|---|---|
+| macOS | [`Payneteasy.API.Key.Pair.Factory_1.0.1_universal.dmg`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1_universal.dmg) |
+| Windows (installer) | [`Payneteasy.API.Key.Pair.Factory_1.0.1_x64-setup.exe`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1_x64-setup.exe) |
+| Windows (MSI) | [`Payneteasy.API.Key.Pair.Factory_1.0.1_x64_en-US.msi`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1_x64_en-US.msi) |
+| Windows (portable) | [`Payneteasy.API.Key.Pair.Factory_1.0.1.portable.exe`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1.portable.exe) |
+| Linux (AppImage) | [`Payneteasy.API.Key.Pair.Factory_1.0.1_amd64.AppImage`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1_amd64.AppImage) |
+| Linux (.deb) | [`Payneteasy.API.Key.Pair.Factory_1.0.1_amd64.deb`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1_amd64.deb) |
+| Linux (.rpm) | [`Payneteasy.API.Key.Pair.Factory-1.0.1-1.x86_64.rpm`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory-1.0.1-1.x86_64.rpm) |
+| Linux (Flatpak) | [`Payneteasy.API.Key.Pair.Factory_1.0.1.flatpak`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1.flatpak) |
+| Linux (binary) | [`Payneteasy.API.Key.Pair.Factory_1.0.1.linux.x64.bin`](https://github.com/payneteasy/key-pair-factory/releases/download/1.0.1/Payneteasy.API.Key.Pair.Factory_1.0.1.linux.x64.bin) |
+
+[releases]: https://github.com/payneteasy/key-pair-factory/releases/latest
+
 ## What it's for
 
 The Payneteasy API supports an **OAuth RSA-SHA256** request-authentication method
